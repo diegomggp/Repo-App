@@ -38,14 +38,14 @@ jobs:
         run: | 
           git config --global user.email "diegomg456@gmail.com"
           git config --global user.name "diegomggp"
-          git clone https://github.com/diegomggp/Builds-Repo.git builds_repo
+          git clone https://github.com/diegomggp/Repo-Builds.git builds_repo
           cd builds_repo
           mkdir -p builds
           TAG=$(echo $GITHUB_REF | sed 's/refs\/tags\///')
           mv /home/runner/work/temp_build/build-${TAG}.tar.gz builds/
           git add builds/build-${TAG}.tar.gz
-          git commit -m "Nuevo build para la tag $GITHUB_REF"
-          git push https://diegomggp:${{ secrets.TOKEN }}@github.com/diegomggp/Builds-Repo.git
+          git commit -m "Nuevo build con tag $GITHUB_REF"
+          git push https://diegomggp:${{ secrets.TOKEN }}@github.com/diegomggp/Repo-Builds.git
 
   
 
