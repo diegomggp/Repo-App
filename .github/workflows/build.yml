@@ -1,0 +1,109 @@
+name: build
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v2
+
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Construir la imagen Docker
+        run: docker build . -t app-build
+
+      - name: Ejecutar el contenedor y copiar contenido afuera
+        run: |
+          docker run -d --name app_container app-build
+          docker cp app_container:/app /home/runner/work/local_build
+
+      - name: Crear directorio temporal
+        run: mkdir -p /home/runner/work/temp_build
+
+      - name: Empaquetar en el directorio temporal
+        run: |
+          TAG=$(echo $GITHUB_REF | sed 's/refs\/tags\///')
+          tar -czvf /home/runner/work/temp_build/build-${TAG}.tar.gz -C /home/runner/work/local_build .
+
+      - name: Pushear al repo de historial de builds
+        env:
+          TOKEN: ${{ secrets.TOKEN }}
+        run: | 
+          git config --global user.email "diegomg456@gmail.com"
+          git config --global user.name "diegomggp"
+          git clone https://github.com/diegomggp/Builds-Repo.git builds_repo
+          cd builds_repo
+          mkdir -p builds
+          TAG=$(echo $GITHUB_REF | sed 's/refs\/tags\///')
+          mv /home/runner/work/temp_build/build-${TAG}.tar.gz builds/
+          git add builds/build-${TAG}.tar.gz
+          git commit -m "Nuevo build para la tag $GITHUB_REF"
+          git push https://diegomggp:${{ secrets.TOKEN }}@github.com/diegomggp/Builds-Repo.git
+
+  
+
+
+# name: Build and Package
+
+# on:
+#   push:
+#     tags:
+#       - '*'
+
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v2
+
+#       - name: Set up Docker Buildx
+#         uses: docker/setup-buildx-action@v1
+
+#       - name: Build Docker image
+#         run: docker build . -t app-build
+
+#       - name: Run Docker container
+#         run: |
+#           docker run -d --name app_container app-build
+#           docker cp app_container:/app /home/runner/work/build_artifacts
+
+#       - name: List files for verification
+#         run: ls -l /home/runner/work/build_artifacts
+
+#       - name: Create temporary directory
+#         run: mkdir -p /home/runner/work/temp_build
+
+#       - name: Package the build
+#         run: |
+#           TAG=$(echo $GITHUB_REF | sed 's/refs\/tags\///')
+#           tar --exclude='./.git' --exclude='./build.tar.gz' -czvf /home/runner/work/temp_build/build-${TAG}.tar.gz -C /home/runner/work/build_artifacts .
+
+#       - name: Verify packaged file
+#         run: ls -l /home/runner/work/temp_build/
+
+#       - name: Push build to repository
+#         env:
+#           TOKEN: ${{ secrets.TOKEN }}
+#         run: |
+#           git config --global user.email "diegomg456@gmail.com"
+#           git config --global user.name "diegomggp"
+#           git clone https://github.com/diegomggp/Builds-Repo.git builds_repo
+#           cd builds_repo
+#           mkdir -p builds
+#           TAG=$(echo $GITHUB_REF | sed 's/refs\/tags\///')
+#           mv /home/runner/work/temp_build/build-${TAG}.tar.gz builds/
+#           git add builds/build-${TAG}.tar.gz
+#           git commit -m "Add build for tag $GITHUB_REF"
+#           git push https://diegomggp:${{ secrets.TOKEN }}@github.com/diegomggp/Builds-Repo.git
+
+#       - name: Clean up Docker container
+#         run: docker rm -f app_container
